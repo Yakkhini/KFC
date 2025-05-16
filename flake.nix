@@ -3,7 +3,7 @@
   description = "Hello world flake using uv2nix";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/24.11";
 
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
@@ -68,7 +68,7 @@
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
 
       # Use Python 3.12 from nixpkgs
-      python = pkgs.python312;
+      python = pkgs.python39;
 
       # Construct package set
       pythonSet =
