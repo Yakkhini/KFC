@@ -1,4 +1,5 @@
-# !/bin/bash
+# !/usr/bin/env bash
+
 # bash -i run.sh <dataset> <gpu-id> <num_epochs>
 
 cd ..
