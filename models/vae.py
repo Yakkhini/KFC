@@ -1,22 +1,25 @@
 from torch import nn
 import torch
 
+
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find('Linear') != -1:
+    if classname.find("Linear") != -1:
         m.weight.data.normal_(0.0, 0.02)
         m.bias.data.fill_(0)
-    elif classname.find('BatchNorm') != -1:
+    elif classname.find("BatchNorm") != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+
 def weights_init_conv(m):
     classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
+    if classname.find("Conv") != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
+    elif classname.find("BatchNorm") != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
+
 
 class Acc_Mnist(nn.Module):
     def __init__(self, args):
@@ -33,11 +36,13 @@ class Acc_Mnist(nn.Module):
         y = self.model(x)
         return y
 
+
 class ConditionalVAE(nn.Module):
     """
     Conditional variational autoencoder network used in LGLvKR,
     Especially for the MNIST and fashion-MNIST datasets.
     """
+
     def __init__(self, args):
         super(ConditionalVAE, self).__init__()
         self.feat_dim = args.feat_dim
@@ -46,7 +51,7 @@ class ConditionalVAE(nn.Module):
         self.class_dim = args.class_dim
 
         self.model_encoder = nn.Sequential(
-            nn.Linear(self.feat_dim+self.class_dim, self.hidden_dim),
+            nn.Linear(self.feat_dim + self.class_dim, self.hidden_dim),
             nn.LeakyReLU(),
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.LeakyReLU(),
@@ -54,7 +59,7 @@ class ConditionalVAE(nn.Module):
         self.fc_mu = nn.Linear(self.hidden_dim, self.latent_dim)
         self.fc_var = nn.Linear(self.hidden_dim, self.latent_dim)
         self.model_decoder = nn.Sequential(
-            nn.Linear(self.latent_dim+self.class_dim, self.hidden_dim),
+            nn.Linear(self.latent_dim + self.class_dim, self.hidden_dim),
             nn.LeakyReLU(),
             nn.Linear(self.hidden_dim, self.hidden_dim),
             nn.LeakyReLU(),
@@ -89,76 +94,82 @@ class ConditionalVAE(nn.Module):
         x_rec = self.decode(z, y)
         return x_rec, mu, logvar
 
-class ConditionalVAE_conv(nn.Module):    
+
+class ConditionalVAE_conv(nn.Module):
     """
     Conditional variational autoencoder network used in LGLvKR,
     Especially for the SVHN and CIFAR-10 datasets.
     """
+
     def __init__(self, args):
         super(ConditionalVAE_conv, self).__init__()
         self.latent_dim = args.latent_dim  # TODO: 128
         self.class_dim = args.class_dim
-        self.in_channel = 3 if args.dataset == 'cifar10' or args.dataset == 'svhn' else 1
-        self.img_size = 32 # cifar10 3*32*32
+        self.in_channel = (
+            3 if args.dataset == "cifar10" or args.dataset == "svhn" else 1
+        )
+        self.img_size = 32  # cifar10 3*32*32
         # self.embed_class = nn.Linear(args.class_dim, self.img_size * self.img_size * self.in_channel)
         self.embed_class = nn.Linear(args.class_dim, self.img_size * self.img_size)
-        self.embed_data = nn.Conv2d(self.in_channel,self.in_channel,kernel_size=1)
+        self.embed_data = nn.Conv2d(self.in_channel, self.in_channel, kernel_size=1)
 
         self.model_encoder = nn.Sequential(
             nn.Conv2d(self.in_channel + 1, 32, 3, 2, 1),
             # nn.Conv2d(self.in_channel + self.in_channel, 32, 3, 2, 1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(),
-
             nn.Conv2d(32, 64, 3, 2, 1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(),
-
             nn.Conv2d(64, 128, 3, 2, 1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(),
-
             nn.Conv2d(128, 256, 3, 2, 1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
         )
 
-        self.fc_mu = nn.Linear(256*2*2, self.latent_dim)
-        self.fc_var = nn.Linear(256*2*2, self.latent_dim)
-        self.decoder_input = nn.Linear(self.latent_dim + args.class_dim, 256*2*2)
+        self.fc_mu = nn.Linear(256 * 2 * 2, self.latent_dim)
+        self.fc_var = nn.Linear(256 * 2 * 2, self.latent_dim)
+        self.decoder_input = nn.Linear(self.latent_dim + args.class_dim, 256 * 2 * 2)
 
         self.model_decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(
+                256, 128, kernel_size=3, stride=2, padding=1, output_padding=1
+            ),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(),
-
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(
+                128, 64, kernel_size=3, stride=2, padding=1, output_padding=1
+            ),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(),
-
-            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(
+                64, 32, kernel_size=3, stride=2, padding=1, output_padding=1
+            ),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(),
-
-            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(
+                32, 16, kernel_size=3, stride=2, padding=1, output_padding=1
+            ),
             nn.BatchNorm2d(16),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
         )
         self.final_layer = nn.Sequential(
             nn.ConvTranspose2d(16, 16, kernel_size=3, padding=1),
             nn.BatchNorm2d(16),
             nn.LeakyReLU(),
             nn.Conv2d(16, 3, kernel_size=3, padding=1),
-            nn.Tanh()
+            nn.Tanh(),
         )
-        #self.apply(weights_init_conv)
+        # self.apply(weights_init_conv)
 
     def encode(self, x, y):
         y = self.embed_class(y)
         y = y.view(-1, self.img_size, self.img_size).unsqueeze(1)
         # y = y.view(-1, self.in_channel, self.img_size, self.img_size)
         x = self.embed_data(x)
-        x = torch.cat([x, y], dim = 1)
+        x = torch.cat([x, y], dim=1)
         x = self.model_encoder(x)  # TODO
         x = torch.flatten(x, start_dim=1)
         mu = self.fc_mu(x)
@@ -175,7 +186,9 @@ class ConditionalVAE_conv(nn.Module):
 
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        eps = torch.cuda.FloatTensor(std.size()).normal_()  # eps = torch.randn_like(std)
+        eps = torch.cuda.FloatTensor(
+            std.size()
+        ).normal_()  # eps = torch.randn_like(std)
         z = eps.mul(std).add_(mu)  # z = eps*std+mu
         return z
 
@@ -186,12 +199,13 @@ class ConditionalVAE_conv(nn.Module):
         x_rec = self.decode(z, y)
         return x_rec, mu, logvar
 
+
 class ConditionalVAE_cifar(nn.Module):
     def __init__(self, args):
         super(ConditionalVAE_cifar, self).__init__()
         self.latent_dim = args.latent_dim
         self.img_size = 64
-        in_channels = 3 if args.dataset == 'cifar10' or args.dataset == 'svhn' else 1
+        in_channels = 3 if args.dataset == "cifar10" or args.dataset == "svhn" else 1
 
         self.embed_class = nn.Linear(args.class_dim, self.img_size * self.img_size)
         self.embed_data = nn.Conv2d(in_channels, in_channels, kernel_size=1)
@@ -200,57 +214,69 @@ class ConditionalVAE_cifar(nn.Module):
         # if hidden_dims is None:
         hidden_dims = [32, 64, 128, 256, 512]
 
-        in_channels += 1 # To account for the extra label channel
+        in_channels += 1  # To account for the extra label channel
         # Build Encoder
         for h_dim in hidden_dims:
             modules.append(
                 nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels=h_dim,
-                              kernel_size= 3, stride= 2, padding  = 1),
+                    nn.Conv2d(
+                        in_channels,
+                        out_channels=h_dim,
+                        kernel_size=3,
+                        stride=2,
+                        padding=1,
+                    ),
                     nn.BatchNorm2d(h_dim),
-                    nn.LeakyReLU())
+                    nn.LeakyReLU(),
+                )
             )
             in_channels = h_dim
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*4, self.latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*4, self.latent_dim)
-
+        self.fc_mu = nn.Linear(hidden_dims[-1] * 4, self.latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1] * 4, self.latent_dim)
 
         # Build Decoder
         modules = []
 
-        self.decoder_input = nn.Linear(self.latent_dim + args.class_dim, hidden_dims[-1] * 4)
+        self.decoder_input = nn.Linear(
+            self.latent_dim + args.class_dim, hidden_dims[-1] * 4
+        )
 
         hidden_dims.reverse()
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
                 nn.Sequential(
-                    nn.ConvTranspose2d(hidden_dims[i],
-                                       hidden_dims[i + 1],
-                                       kernel_size=3,
-                                       stride = 2,
-                                       padding=1,
-                                       output_padding=1),
+                    nn.ConvTranspose2d(
+                        hidden_dims[i],
+                        hidden_dims[i + 1],
+                        kernel_size=3,
+                        stride=2,
+                        padding=1,
+                        output_padding=1,
+                    ),
                     nn.BatchNorm2d(hidden_dims[i + 1]),
-                    nn.LeakyReLU())
+                    nn.LeakyReLU(),
+                )
             )
 
         self.decoder = nn.Sequential(*modules)
 
         self.final_layer = nn.Sequential(
-                            nn.ConvTranspose2d(hidden_dims[-1],
-                                               hidden_dims[-1],
-                                               kernel_size=3,
-                                               stride=2,
-                                               padding=1,
-                                               output_padding=1),
-                            nn.BatchNorm2d(hidden_dims[-1]),
-                            nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= 3,
-                                      kernel_size= 3, padding= 1),
-                            nn.Tanh())
+            nn.ConvTranspose2d(
+                hidden_dims[-1],
+                hidden_dims[-1],
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                output_padding=1,
+            ),
+            nn.BatchNorm2d(hidden_dims[-1]),
+            nn.LeakyReLU(),
+            nn.Conv2d(hidden_dims[-1], out_channels=3, kernel_size=3, padding=1),
+            nn.Tanh(),
+        )
 
     def encode(self, input):
         """
@@ -293,13 +319,16 @@ class ConditionalVAE_cifar(nn.Module):
         # y = torch.eye(10)[y].cuda()
         y = y.float()
         embedded_class = self.embed_class(y)
-        embedded_class = embedded_class.view(-1, self.img_size, self.img_size).unsqueeze(1)
+        embedded_class = embedded_class.view(
+            -1, self.img_size, self.img_size
+        ).unsqueeze(1)
         embedded_input = self.embed_data(input)
 
-        x = torch.cat([embedded_input, embedded_class], dim = 1)
+        x = torch.cat([embedded_input, embedded_class], dim=1)
         mu, log_var = self.encode(x)
 
         z = self.reparameterize(mu, log_var)
 
-        z = torch.cat([z, y], dim = 1)
+        z = torch.cat([z, y], dim=1)
         return self.decode(z), mu, log_var
+
