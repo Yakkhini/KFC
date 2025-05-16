@@ -1,0 +1,12 @@
+[project]
+name = "kfc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "ignite>=1.1.0",
+    "lpips>=0.1.4",
+    "torch==1.7.1",
+    "torchvision==0.8.2",
+]
